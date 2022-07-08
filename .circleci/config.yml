@@ -6,6 +6,8 @@ orbs:
 jobs:
   send-notification:
       description: Send custom notification to slack when a job fails and succeeds.   
+      docker:
+        - image: 'cimg/base:stable'
       steps:
         - slack/notify:
             custom: |
