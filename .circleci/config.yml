@@ -4,6 +4,142 @@ orbs:
   slack: circleci/slack@4.10.1
             
 jobs:
+  send-notification:
+      description: Send custom notification to slack when a job fails and succeeds.   
+      steps:
+        - slack/notify:
+            custom: |
+              {
+                "text": "CircleCI job Notification.",
+                "blocks": [
+                  {
+                    "type": "header",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Job Failed. :red_circle:",
+                      "emoji": true
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Job*: ${CIRCLE_JOB}"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                      },
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Branch*: $CIRCLE_BRANCH"
+                      }
+                    ],
+                    "accessory": {
+                      "type": "image",
+                      "image_url": "https://cdn.freebiesupply.com/logos/large/2x/udacity-logo-png-transparent.png",
+                      "alt_text": "Udacity logo"
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Mentions*: $SLACK_PARAM_MENTIONS"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "actions",
+                    "elements": [
+                      {
+                        "type": "button",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "View Job"
+                        },
+                        "url": "${CIRCLE_BUILD_URL}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            event: fail
+            # mentions: "@UdaPeopleDevTeam"
+        - slack/notify:
+            event: pass
+            # mentions: "@UdaPeopleDevTeam"
+            custom: |
+              {
+                "text": "CircleCI job Notification.",
+                "blocks": [
+                  {
+                    "type": "header",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Job Succeeded. :white_check_mark:",
+                      "emoji": true
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Job*: ${CIRCLE_JOB}"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Project*: $CIRCLE_PROJECT_REPONAME"
+                      },
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Branch*: $CIRCLE_BRANCH"
+                      }
+                    ],
+                    "accessory": {
+                      "type": "image",
+                      "image_url": "https://cdn.freebiesupply.com/logos/large/2x/udacity-logo-png-transparent.png",
+                      "alt_text": "Udacity logo"
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Mentions*: $SLACK_PARAM_MENTIONS"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "actions",
+                    "elements": [
+                      {
+                        "type": "button",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "View Job"
+                        },
+                        "url": "${CIRCLE_BUILD_URL}"
+                      }
+                    ]
+                  }
+                ]
+              }
+
   build-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -97,6 +233,42 @@ jobs:
             npm audit fix --audit-level=critical --force
             npm audit fix --force
             npm audit --audit-level=critical
+  
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
+      - run:
+          name: Ensure front-end infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/frontend.yml \
+              --tags project=your-tag \
+              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  
+      - run:
+          name: Add back-end ip to ansible inventory
+          command: |
+            aws ec2 describe-instances \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --filters "Name=tag:project,Values=udacity" \
+              --output text >> udapeople-project/.circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
+      - destroy-environment
+
 
 
 workflows:
@@ -112,6 +284,8 @@ workflows:
           requires: [build-backend]
       - scan-frontend:
           requires: [build-frontend]
+      - deploy-infrastructure:
+          requires: [build-backend, build-frontend]
      
           
       
