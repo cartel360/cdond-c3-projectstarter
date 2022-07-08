@@ -419,11 +419,11 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            yum install -y aws-cli
-            yum install -y tar gzip
-            yum install -y nodejs
-            yum install -y npm
-            yum install -y curl
+            apk add aws-cli
+            apk add tar gzip
+            apk add nodejs
+            apk add npm
+            apk add curl
       - run:
           name: Backend smoke test.
           command: |
