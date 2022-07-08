@@ -1,8 +1,5 @@
 version: 2.1
 
-orbs: 
-  slack: circleci/slack@4.10.1
-
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
@@ -34,7 +31,12 @@ commands:
               npm install
               npm run migrations:revert
             fi
-    send-notification:
+
+orbs: 
+  slack: circleci/slack@4.10.1
+            
+jobs:
+  send-notification:
       description: Send custom notification to slack when a job fails and succeeds.   
       docker:
         - image: 'cimg/base:stable'
@@ -172,8 +174,6 @@ commands:
                 ]
               }
 
-            
-jobs:
   build-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -316,7 +316,7 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update ansible
-            apk add  --no-cache aws-cli tar gzip
+            apk add --no-cache aws-cli tar gzip
       - run:
           name: Configure server
           command: |
@@ -341,7 +341,7 @@ jobs:
             if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
               echo "Migration successful"
-              curl --insecure https://kvdb.io/9T6udeKYS1UtTayGniEzd/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '2'
+              curl --insecure https://kvdb.io/9T6udeKYS1UtTayGniEzd/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
             else
               echo "Migration failed"
             fi
