@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs: 
+  slack: circleci/slack@4.10.1
+
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
@@ -31,12 +34,7 @@ commands:
               npm install
               npm run migrations:revert
             fi
-
-orbs: 
-  slack: circleci/slack@4.10.1
-            
-jobs:
-  send-notification:
+    send-notification:
       description: Send custom notification to slack when a job fails and succeeds.   
       docker:
         - image: 'cimg/base:stable'
@@ -174,6 +172,8 @@ jobs:
                 ]
               }
 
+            
+jobs:
   build-frontend:
     docker:
       - image: circleci/node:13.8.0
