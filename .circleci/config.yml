@@ -388,9 +388,9 @@ jobs:
     steps:
       - checkout
       - add_ssh_key:
-        fingerprints: ["8d:c6:87:f3:64:3f:da:0e:f0:64:c7:52:c9:24:12:5e"]
+          fingerprints: ["8d:c6:87:f3:64:3f:da:0e:f0:64:c7:52:c9:24:12:5e"]
       - attach_workspace:
-        at: ~/
+          at: ~/
       - run:
           name: Install dependencies
           command: |
