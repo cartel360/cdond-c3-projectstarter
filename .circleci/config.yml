@@ -297,6 +297,7 @@ jobs:
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --filters "Name=tag:project,Values=udacity" \
               --output text >> ~/project/.circleci/ansible/inventory.txt
+            cat ~/project/.circleci/ansible/inventory.txt
       - persist_to_workspace:
           root: ~/
           paths:
@@ -310,13 +311,15 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["8d:c6:87:f3:64:3f:da:0e:f0:64:c7:52:c9:24:12:5e"]
-      - attach_workspace:
-          at: ~/
+      
       - run:
           name: Install dependencies
           command: |
             apk add --update ansible
             apk add --no-cache aws-cli tar gzip
+      
+      - attach_workspace:
+          at: ~/
       - run:
           name: Configure server
           command: |
