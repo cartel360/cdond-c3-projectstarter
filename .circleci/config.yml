@@ -435,6 +435,8 @@ jobs:
           name: Install dependencies
           command: |
              apk add --update --no-cache curl aws-cli tar gzip nodejs npm
+      - attach_workspace:
+          at: ~/
       - run:
           name: Backend url smoke test.
           command: |
@@ -461,8 +463,8 @@ jobs:
               else
                 return 1
               fi
-      # - destroy-environment
-      # - revert-migrations  
+      - destroy-environment
+      - revert-migrations  
 
   cloudfront-update:
     docker:
