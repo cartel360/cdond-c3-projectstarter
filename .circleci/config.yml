@@ -311,20 +311,23 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["8d:c6:87:f3:64:3f:da:0e:f0:64:c7:52:c9:24:12:5e"]
-      
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible
-            apk add --no-cache aws-cli tar gzip
-      
+            apk add --update --no-cache tar gzip ansible aws-cli   
       - attach_workspace:
           at: ~/
+      - restore_cache:
+          keys: [backend-build]
       - run:
           name: Configure server
-          command: |
+          command: |   
             cd .circleci/ansible
             ansible-playbook -i inventory.txt configure-server.yml
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/backend
       - destroy-environment
 
   run-migrations:
@@ -361,8 +364,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible
-            apk add  --no-cache aws-cli tar gzip npm nodejs curl rsync
+            apk add --update --no-cache tar gzip nodejs npm ansible curl aws-cli
       - run:
           name: Get backend url
           command: |
@@ -380,6 +382,7 @@ jobs:
             cd frontend
             npm install
             npm run build
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp ./dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
       - destroy-environment
       - revert-migrations        
@@ -391,25 +394,25 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["8d:c6:87:f3:64:3f:da:0e:f0:64:c7:52:c9:24:12:5e"]
+      - attach_workspace:
+          at: ~/
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible
-            apk add  --no-cache aws-cli tar gzip npm nodejs curl rsync openssh
-
-      - attach_workspace:
-          at: ~/
+            apk add --update --no-cache tar gzip nodejs npm tree aws-cli ansible    
       - run:
           name: Deploy backend
           command: |
             cd backend
-            npm i
+            npm install
             npm run build
             cd ..
             tar -C backend -czvf artifact.tar.gz . 
-            ls -a
+            tree -afC /root/project/.circleci -I *node_modules*
+            mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+            mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
             cd .circleci/ansible
-            echo "Contents  of the inventory.txt file is -------"
+            echo "Contents  of the inventory.txt file is ------- $(tail -1 inventory.txt)"
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml \
             --ssh-common-args='-o StrictHostKeyChecking=no'
@@ -424,11 +427,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add aws-cli
-            apk add tar gzip
-            apk add nodejs
-            apk add npm
-            apk add curl
+             apk add --update --no-cache curl aws-cli tar gzip nodejs npm
       - run:
           name: Backend url smoke test.
           command: |
