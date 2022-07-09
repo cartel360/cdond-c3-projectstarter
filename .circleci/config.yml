@@ -463,22 +463,18 @@ jobs:
               else
                 return 1
               fi
-      - destroy-environment
-      - revert-migrations  
+      # - destroy-environment
+      # - revert-migrations  
 
   cloudfront-update:
     docker:
-      - image: alpine:latest
+      - image: amazon/aws-cli
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            apk add aws-cli
-            apk add tar gzip
-            apk add nodejs
-            apk add npm
-            apk add curl
+            yum install tar gzip npm nodejs -y
       - run:
           name: Update cloudfront distribution
           command: |
@@ -546,6 +542,8 @@ workflows:
           requires: [run-migrations]
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
+      - cloudfront-update:
+          requires: [smoke-test]
      
           
       
